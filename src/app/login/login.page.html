@@ -1,0 +1,66 @@
+<ion-content [fullscreen]="true" class="login-content">
+  <main class="login-shell">
+    <section class="brand-block" aria-labelledby="login-title">
+      <div class="brand-mark" aria-hidden="true">
+        <ion-icon name="book-outline"></ion-icon>
+      </div>
+      <p class="eyebrow">BITÁCORA PERSONAL</p>
+      <h1 id="login-title">Bitácora Cultural</h1>
+      <p class="tagline">Tu espacio personal para recordar cada historia.</p>
+    </section>
+
+    <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
+      <div class="field-group">
+        <ion-label for="email">Correo electrónico</ion-label>
+        <ion-item lines="none" class="input-item" [class.invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched">
+          <ion-input
+            id="email"
+            formControlName="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            placeholder="ejemplo@correo.com"
+            aria-describedby="email-error"
+          ></ion-input>
+        </ion-item>
+        @if (loginForm.controls.email.hasError('required') && loginForm.controls.email.touched) {
+          <ion-note id="email-error" class="error-message">El correo electrónico es obligatorio</ion-note>
+        } @else if (loginForm.controls.email.hasError('email') && loginForm.controls.email.touched) {
+          <ion-note id="email-error" class="error-message">Introduce un correo electrónico válido</ion-note>
+        }
+      </div>
+
+      <div class="field-group">
+        <ion-label for="password">Contraseña</ion-label>
+        <ion-item lines="none" class="input-item" [class.invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched">
+          <ion-input
+            id="password"
+            formControlName="password"
+            [type]="passwordVisible ? 'text' : 'password'"
+            autocomplete="current-password"
+            placeholder="Introduce tu contraseña"
+            aria-describedby="password-error"
+          ></ion-input>
+          <ion-button
+            fill="clear"
+            type="button"
+            class="visibility-button"
+            [attr.aria-label]="passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            (click)="togglePasswordVisibility()"
+          >
+            <ion-icon slot="icon-only" [name]="passwordVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
+        </ion-item>
+        @if (loginForm.controls.password.hasError('required') && loginForm.controls.password.touched) {
+          <ion-note id="password-error" class="error-message">La contraseña es obligatoria</ion-note>
+        }
+      </div>
+
+      <ion-button expand="block" type="submit" class="submit-button">Iniciar sesión</ion-button>
+
+      @if (serverMessage) {
+        <ion-note class="server-message" role="status">{{ serverMessage }}</ion-note>
+      }
+    </form>
+  </main>
+</ion-content>
