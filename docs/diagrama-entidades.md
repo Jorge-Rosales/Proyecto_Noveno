@@ -1,4 +1,5 @@
-# Diagrama de entidades de Bitácora Cultural
+docs/diagrama-entidades.md
+docs/uso-de-inteligencia-artificial.md# Diagrama de entidades de Bitácora Cultural
 
 ## 1. Objetivo
 

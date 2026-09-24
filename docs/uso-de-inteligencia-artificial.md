@@ -1,4 +1,4 @@
-# Uso de inteligencia artificial en Bitácora Cultural
+git add docs/diagrama-entidades.md docs/uso-de-inteligencia-artificial.md# Uso de inteligencia artificial en Bitácora Cultural
 
 ## 1. Objetivo
 
