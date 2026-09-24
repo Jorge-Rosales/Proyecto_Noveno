@@ -1,17 +1,116 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Tab 3
-    </ion-title>
+    <ion-title>Mis películas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="solid" class="header-action" (click)="openAddForm()"><ion-icon slot="start" name="add"></ion-icon>Agregar película</ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 3</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="movies-content">
+  <main class="movies-shell">
+    <section class="movies-intro">
+      <p class="eyebrow">COLECCIÓN PERSONAL</p>
+      <h1>Mis películas</h1>
+      <p>Guarda las historias que merecen volver a ser recordadas.</p>
+    </section>
 
-  <app-explore-container name="Tab 3 page"></app-explore-container>
+    <section class="history-tools" aria-label="Herramientas del historial">
+      <ion-item lines="none" class="search-item"><ion-icon slot="start" name="search-outline"></ion-icon><ion-input placeholder="Buscar por título..." type="search" [value]="searchTerm()" (ionInput)="setSearchTerm($event)" aria-label="Buscar por título"></ion-input></ion-item>
+      <ion-item lines="none" class="sort-item"><ion-label>Ordenar por</ion-label><ion-select [value]="sortOption()" (ionChange)="setSortOption($event)" interface="popover" aria-label="Ordenar películas"><ion-select-option value="newest">Más recientes</ion-select-option><ion-select-option value="oldest">Más antiguas</ion-select-option><ion-select-option value="highest">Mayor calificación</ion-select-option><ion-select-option value="lowest">Menor calificación</ion-select-option></ion-select></ion-item>
+    </section>
+
+    @if (movies().length === 0) {
+      <section class="empty-state">
+        <div class="empty-icon"><ion-icon name="film-outline"></ion-icon></div>
+        <h2>Tu colección espera su primera película</h2>
+        <p>Agrega una película para comenzar a conservar las historias que has disfrutado.</p>
+        <ion-button fill="outline" (click)="openAddForm()"><ion-icon slot="start" name="add"></ion-icon>Agregar mi primera película</ion-button>
+      </section>
+    } @else if (filteredMovies().length === 0) {
+      <section class="empty-state compact-empty"><div class="empty-icon"><ion-icon name="search-outline"></ion-icon></div><h2>No se encontraron películas con ese título</h2><p>Prueba con otra búsqueda.</p></section>
+    } @else {
+      <section class="movie-list" aria-label="Historial de películas">
+        @for (movie of filteredMovies(); track movie.id) {
+          <article class="movie-card">
+            <div class="movie-card-main">
+              <p class="movie-status">{{ movie.status }}</p><h2>{{ movie.title }}</h2>
+              @if (movie.director) { <p class="movie-director">{{ movie.director }}</p> }
+              @if (movie.genre) { <p class="movie-genre">{{ movie.genre }}</p> }
+              <div class="movie-meta">
+                @if (movie.rating) {
+                  <span class="rating" aria-label="{{ movie.rating }} de 5 estrellas">@for (starNumber of [1, 2, 3, 4, 5]; track starNumber) { <ion-icon [name]="starNumber <= movie.rating ? 'star' : 'star-outline'"></ion-icon> }</span>
+                } @else { <span>Sin calificar</span> }
+                <span>Registrada {{ formatDate(movie.createdAt) }}</span>
+              </div>
+            </div>
+            <div class="movie-actions">
+              <ion-button fill="clear" aria-label="Ver detalles" (click)="openDetails(movie)"><ion-icon slot="icon-only" name="information-circle-outline"></ion-icon></ion-button>
+              <ion-button fill="clear" aria-label="Editar película" (click)="openEditForm(movie)"><ion-icon slot="icon-only" name="create-outline"></ion-icon></ion-button>
+              <ion-button fill="clear" color="danger" aria-label="Eliminar película" (click)="confirmDelete(movie)"><ion-icon slot="icon-only" name="trash-outline"></ion-icon></ion-button>
+            </div>
+          </article>
+        }
+      </section>
+    }
+  </main>
 </ion-content>
+
+<ion-modal [isOpen]="isFormOpen()" (didDismiss)="closeForm()" aria-label="Formulario de película">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-title>{{ editingMovieId() ? 'Editar película' : 'Agregar película' }}</ion-title><ion-buttons slot="end"><ion-button aria-label="Cerrar" (click)="closeForm()"><ion-icon slot="icon-only" name="close"></ion-icon></ion-button></ion-buttons></ion-toolbar></ion-header>
+    <ion-content class="form-content">
+      <form [formGroup]="movieForm" (ngSubmit)="saveMovie()" class="movie-form" novalidate>
+        <div class="form-field">
+          <ion-label for="movie-title">Título de la película</ion-label>
+          <ion-input id="movie-title" formControlName="title" placeholder="Escribe el título de la película" [class.field-invalid]="movieForm.controls.title.invalid && movieForm.controls.title.touched" aria-describedby="movie-title-error"></ion-input>
+          @if (movieForm.controls.title.hasError('blank') && movieForm.controls.title.touched) { <ion-note id="movie-title-error" class="error-message">Escribe un título válido</ion-note> }
+        </div>
+        <div class="form-row">
+          <div class="form-field"><ion-label for="movie-director">Director</ion-label><ion-input id="movie-director" formControlName="director" placeholder="Nombre del director"></ion-input></div>
+          <div class="form-field"><ion-label for="movie-genre">Género</ion-label><ion-input id="movie-genre" formControlName="genre" placeholder="Ej. Ciencia ficción"></ion-input></div>
+        </div>
+        <div class="form-field">
+          <ion-label>Calificación</ion-label>
+          <div class="rating-picker" role="group" aria-label="Calificación de 1 a 5 estrellas">
+            @for (starNumber of [1, 2, 3, 4, 5]; track starNumber) { <ion-button fill="clear" type="button" [attr.aria-label]="starNumber + ' estrellas'" [attr.aria-pressed]="movieForm.controls.rating.value === starNumber" (click)="setRating(starNumber)"><ion-icon slot="icon-only" [name]="isRatingSelected(starNumber) ? 'star' : 'star-outline'"></ion-icon></ion-button> }
+            @if (movieForm.controls.rating.value) { <ion-button fill="clear" type="button" (click)="setRating(null)">Quitar</ion-button> } @else { <span>Sin calificar</span> }
+          </div>
+        </div>
+        <div class="form-field"><ion-label for="movie-status">Estado</ion-label><ion-select id="movie-status" formControlName="status" interface="popover"><ion-select-option value="En progreso">En progreso</ion-select-option><ion-select-option value="Terminado">Terminado</ion-select-option><ion-select-option value="Abandonado">Abandonado</ion-select-option></ion-select></div>
+        <div class="form-row">
+          <div class="form-field"><ion-label for="movie-start-date">Fecha de inicio</ion-label><ion-input id="movie-start-date" formControlName="startDate" type="date"></ion-input></div>
+          <div class="form-field"><ion-label for="movie-finish-date">Fecha de finalización</ion-label><ion-input id="movie-finish-date" formControlName="finishDate" type="date"></ion-input></div>
+        </div>
+        @if (movieForm.hasError('invalidDateRange') && (movieForm.controls.startDate.touched || movieForm.controls.finishDate.touched)) { <ion-note class="error-message form-error">La fecha de finalización no puede ser anterior a la fecha de inicio</ion-note> }
+        <div class="form-field"><ion-label for="movie-opinion">Mi opinión</ion-label><ion-textarea id="movie-opinion" formControlName="opinion" placeholder="¿Qué te pareció esta película?" [autoGrow]="true"></ion-textarea></div>
+        <div class="form-field"><ion-label for="movie-quote">Frase favorita</ion-label><ion-textarea id="movie-quote" formControlName="favoriteQuote" placeholder="Guarda una frase que quieras recordar..." [autoGrow]="true"></ion-textarea></div>
+        <div class="form-actions"><ion-button type="button" fill="outline" (click)="closeForm()">Cancelar</ion-button><ion-button type="submit">Guardar película</ion-button></div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="isDetailsOpen()" (didDismiss)="closeDetails()" aria-label="Detalles de la película">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-title>Detalles</ion-title><ion-buttons slot="end"><ion-button aria-label="Cerrar" (click)="closeDetails()"><ion-icon slot="icon-only" name="close"></ion-icon></ion-button></ion-buttons></ion-toolbar></ion-header>
+    <ion-content class="details-content">
+      @if (selectedMovie(); as movie) {
+        <article class="details-card">
+          <p class="movie-status">{{ movie.status }}</p><h2>{{ movie.title }}</h2>
+          @if (movie.director) { <p class="movie-director">{{ movie.director }}</p> }
+          <dl>
+            @if (movie.genre) { <div><dt>Género</dt><dd>{{ movie.genre }}</dd></div> }
+            <div><dt>Calificación</dt><dd>{{ movie.rating ? movie.rating + ' de 5 estrellas' : 'Sin calificar' }}</dd></div>
+            @if (movie.startDate) { <div><dt>Fecha de inicio</dt><dd>{{ formatDate(movie.startDate) }}</dd></div> }
+            @if (movie.finishDate) { <div><dt>Fecha de finalización</dt><dd>{{ formatDate(movie.finishDate) }}</dd></div> }
+            <div><dt>Fecha de registro</dt><dd>{{ formatDate(movie.createdAt) }}</dd></div>
+          </dl>
+          @if (movie.opinion) { <section><h3>Mi opinión</h3><p class="preserved-text">{{ movie.opinion }}</p></section> }
+          @if (movie.favoriteQuote) { <section><h3>Frase favorita</h3><blockquote class="preserved-text">{{ movie.favoriteQuote }}</blockquote></section> }
+          <ion-button expand="block" fill="outline" (click)="openEditForm(movie)"><ion-icon slot="start" name="create-outline"></ion-icon>Editar película</ion-button>
+        </article>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

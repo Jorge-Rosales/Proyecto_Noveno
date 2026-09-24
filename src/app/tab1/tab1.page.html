@@ -1,17 +1,39 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Tab 1
-    </ion-title>
+    <ion-title>Mis libros</ion-title>
+    <ion-buttons slot="end"><ion-button fill="solid" class="header-action" (click)="openAddForm()"><ion-icon slot="start" name="add"></ion-icon>Agregar libro</ion-button></ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <app-explore-container name="Tab 1 page"></app-explore-container>
+<ion-content [fullscreen]="true" class="books-content">
+  <main class="books-shell">
+    <section class="books-intro"><p class="eyebrow">BIBLIOTECA PERSONAL</p><h1>Mis libros</h1><p>Guarda las historias que han formado parte de tu vida.</p></section>
+    <section class="library-tools" aria-label="Herramientas de biblioteca">
+      <ion-item lines="none" class="search-item"><ion-icon slot="start" name="search-outline"></ion-icon><ion-input placeholder="Buscar por título..." type="search" [value]="searchTerm()" (ionInput)="setSearchTerm($event)" aria-label="Buscar por título"></ion-input></ion-item>
+      <ion-item lines="none" class="sort-item"><ion-label>Ordenar por</ion-label><ion-select [value]="sortOption()" (ionChange)="setSortOption($event)" interface="popover" aria-label="Ordenar libros"><ion-select-option value="newest">Más recientes</ion-select-option><ion-select-option value="oldest">Más antiguos</ion-select-option><ion-select-option value="highest">Mayor calificación</ion-select-option><ion-select-option value="lowest">Menor calificación</ion-select-option></ion-select></ion-item>
+    </section>
+    @if (books().length === 0) {
+      <section class="empty-state"><div class="empty-icon"><ion-icon name="library-outline"></ion-icon></div><h2>Tu biblioteca está esperando su primera historia</h2><p>Agrega un libro para comenzar a construir tu bitácora personal.</p><ion-button fill="outline" (click)="openAddForm()"><ion-icon slot="start" name="add"></ion-icon>Agregar mi primer libro</ion-button></section>
+    } @else if (filteredBooks().length === 0) {
+      <section class="empty-state compact-empty"><div class="empty-icon"><ion-icon name="search-outline"></ion-icon></div><h2>No se encontraron libros con ese título</h2><p>Prueba con otra búsqueda.</p></section>
+    } @else {
+      <section class="book-list" aria-label="Historial de libros">
+        @for (book of filteredBooks(); track book.id) {
+          <article class="book-card"><div class="book-card-main"><p class="book-status">{{ book.status }}</p><h2>{{ book.title }}</h2>@if (book.author) { <p class="book-author">{{ book.author }}</p> }<div class="book-meta">@if (book.rating) { <span class="rating" aria-label="{{ book.rating }} de 5 estrellas">@for (starNumber of [1, 2, 3, 4, 5]; track starNumber) { <ion-icon [name]="starNumber <= book.rating ? 'star' : 'star-outline'"></ion-icon> }</span> } @else { <span>Sin calificar</span> }<span>Registrado {{ formatDate(book.createdAt) }}</span></div></div><div class="book-actions"><ion-button fill="clear" aria-label="Ver detalles" (click)="openDetails(book)"><ion-icon slot="icon-only" name="information-circle-outline"></ion-icon></ion-button><ion-button fill="clear" aria-label="Editar libro" (click)="openEditForm(book)"><ion-icon slot="icon-only" name="create-outline"></ion-icon></ion-button><ion-button fill="clear" color="danger" aria-label="Eliminar libro" (click)="confirmDelete(book)"><ion-icon slot="icon-only" name="trash-outline"></ion-icon></ion-button></div></article>
+        }
+      </section>
+    }
+  </main>
 </ion-content>
+
+<ion-modal [isOpen]="isFormOpen()" (didDismiss)="closeForm()" aria-label="Formulario de libro"><ng-template><ion-header><ion-toolbar><ion-title>{{ editingBookId() ? 'Editar libro' : 'Agregar libro' }}</ion-title><ion-buttons slot="end"><ion-button aria-label="Cerrar" (click)="closeForm()"><ion-icon slot="icon-only" name="close"></ion-icon></ion-button></ion-buttons></ion-toolbar></ion-header><ion-content class="form-content"><form [formGroup]="bookForm" (ngSubmit)="saveBook()" class="book-form" novalidate>
+  <div class="form-field"><ion-label for="book-title">Título del libro</ion-label><ion-input id="book-title" formControlName="title" placeholder="Escribe el título del libro" [class.field-invalid]="bookForm.controls.title.invalid && bookForm.controls.title.touched" aria-describedby="book-title-error"></ion-input>@if (bookForm.controls.title.hasError('blank') && bookForm.controls.title.touched) { <ion-note id="book-title-error" class="error-message">Escribe un título válido</ion-note> }</div>
+  <div class="form-row"><div class="form-field"><ion-label for="book-author">Autor</ion-label><ion-input id="book-author" formControlName="author" placeholder="Nombre del autor"></ion-input></div><div class="form-field"><ion-label for="book-genre">Género</ion-label><ion-input id="book-genre" formControlName="genre" placeholder="Ej. Fantasía"></ion-input></div></div>
+  <div class="form-field"><ion-label>Calificación</ion-label><div class="rating-picker" role="group" aria-label="Calificación de 1 a 5 estrellas">@for (starNumber of [1, 2, 3, 4, 5]; track starNumber) { <ion-button fill="clear" type="button" [attr.aria-label]="starNumber + ' estrellas'" [attr.aria-pressed]="bookForm.controls.rating.value === starNumber" (click)="setRating(starNumber)"><ion-icon slot="icon-only" [name]="isRatingSelected(starNumber) ? 'star' : 'star-outline'"></ion-icon></ion-button> } @if (bookForm.controls.rating.value) { <ion-button fill="clear" type="button" (click)="setRating(null)">Quitar</ion-button> } @else { <span>Sin calificar</span> }</div></div>
+  <div class="form-field"><ion-label for="book-status">Estado</ion-label><ion-select id="book-status" formControlName="status" interface="popover"><ion-select-option value="En progreso">En progreso</ion-select-option><ion-select-option value="Terminado">Terminado</ion-select-option><ion-select-option value="Abandonado">Abandonado</ion-select-option></ion-select></div>
+  <div class="form-row"><div class="form-field"><ion-label for="start-date">Fecha de inicio</ion-label><ion-input id="start-date" formControlName="startDate" type="date"></ion-input></div><div class="form-field"><ion-label for="finish-date">Fecha de finalización</ion-label><ion-input id="finish-date" formControlName="finishDate" type="date"></ion-input></div></div>
+  @if (bookForm.hasError('invalidDateRange') && (bookForm.controls.startDate.touched || bookForm.controls.finishDate.touched)) { <ion-note class="error-message">La fecha de finalización no puede ser anterior a la fecha de inicio</ion-note> }
+  <div class="form-field"><ion-label for="book-opinion">Mi opinión</ion-label><ion-textarea id="book-opinion" formControlName="opinion" placeholder="¿Qué te pareció este libro?" [autoGrow]="true"></ion-textarea></div><div class="form-field"><ion-label for="favorite-quote">Frase favorita</ion-label><ion-textarea id="favorite-quote" formControlName="favoriteQuote" placeholder="Guarda una frase que quieras recordar..." [autoGrow]="true"></ion-textarea></div><div class="form-actions"><ion-button type="button" fill="outline" (click)="closeForm()">Cancelar</ion-button><ion-button type="submit">Guardar libro</ion-button></div>
+</form></ion-content></ng-template></ion-modal>
+
+<ion-modal [isOpen]="isDetailsOpen()" (didDismiss)="closeDetails()" aria-label="Detalles del libro"><ng-template><ion-header><ion-toolbar><ion-title>Detalles</ion-title><ion-buttons slot="end"><ion-button aria-label="Cerrar" (click)="closeDetails()"><ion-icon slot="icon-only" name="close"></ion-icon></ion-button></ion-buttons></ion-toolbar></ion-header><ion-content class="details-content">@if (selectedBook(); as book) { <article class="details-card"><p class="book-status">{{ book.status }}</p><h2>{{ book.title }}</h2>@if (book.author) { <p class="book-author">{{ book.author }}</p> }<dl>@if (book.genre) { <div><dt>Género</dt><dd>{{ book.genre }}</dd></div> }<div><dt>Calificación</dt><dd>{{ book.rating ? book.rating + ' de 5 estrellas' : 'Sin calificar' }}</dd></div><div><dt>Fecha de registro</dt><dd>{{ formatDate(book.createdAt) }}</dd></div>@if (book.startDate) { <div><dt>Fecha de inicio</dt><dd>{{ formatDate(book.startDate) }}</dd></div> }@if (book.finishDate) { <div><dt>Fecha de finalización</dt><dd>{{ formatDate(book.finishDate) }}</dd></div> }</dl>@if (book.opinion) { <section><h3>Mi opinión</h3><p class="preserved-text">{{ book.opinion }}</p></section> }@if (book.favoriteQuote) { <section><h3>Frase favorita</h3><blockquote class="preserved-text">{{ book.favoriteQuote }}</blockquote></section> }<ion-button expand="block" fill="outline" (click)="openEditForm(book)"><ion-icon slot="start" name="create-outline"></ion-icon>Editar libro</ion-button></article> }</ion-content></ng-template></ion-modal>

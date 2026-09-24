@@ -1,31 +1,155 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title> Photo Gallery </ion-title>
+    <ion-title>Mis series</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="solid" class="header-action" (click)="openAddForm()">
+        <ion-icon slot="start" name="add"></ion-icon>Agregar serie
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Photo Gallery</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="series-content">
+  <main class="series-shell">
+    <section class="series-intro">
+      <p class="eyebrow">BITÁCORA DE SERIES</p>
+      <h1>Mis series</h1>
+      <p>Cada episodio es una historia que merece ser recordada.</p>
+    </section>
 
-  <ion-grid>
-    <ion-row>
-      @for (photo of photoService.photos(); track photo.filepath; let position = $index) {
-      <ion-col size="6">
-        <button (click)="showActionSheet(photo, position)">
-          <img [src]="photo.webviewPath" [attr.alt]="'Photo ' + (position + 1)" loading="lazy" />
-        </button>
-      </ion-col>
-      }
-    </ion-row>
-  </ion-grid>
+    <section class="history-tools" aria-label="Herramientas del historial">
+      <ion-item lines="none" class="search-item">
+        <ion-icon slot="start" name="search-outline"></ion-icon>
+        <ion-input placeholder="Buscar por título..." type="search" [value]="searchTerm()" (ionInput)="setSearchTerm($event)" aria-label="Buscar por título"></ion-input>
+      </ion-item>
+      <ion-item lines="none" class="sort-item">
+        <ion-label>Ordenar por</ion-label>
+        <ion-select [value]="sortOption()" (ionChange)="setSortOption($event)" interface="popover" aria-label="Ordenar series">
+          <ion-select-option value="newest">Más recientes</ion-select-option>
+          <ion-select-option value="oldest">Más antiguas</ion-select-option>
+          <ion-select-option value="highest">Mayor calificación</ion-select-option>
+          <ion-select-option value="lowest">Menor calificación</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </section>
 
-  <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-    <ion-fab-button (click)="addPhotoToGallery()">
-      <ion-icon name="camera"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+    @if (series().length === 0) {
+      <section class="empty-state">
+        <div class="empty-icon"><ion-icon name="tv-outline"></ion-icon></div>
+        <h2>Tu historia comienza con el primer episodio</h2>
+        <p>Agrega una serie para comenzar a construir tu bitácora personal.</p>
+        <ion-button fill="outline" (click)="openAddForm()"><ion-icon slot="start" name="add"></ion-icon>Agregar mi primera serie</ion-button>
+      </section>
+    } @else if (filteredSeries().length === 0) {
+      <section class="empty-state compact-empty">
+        <div class="empty-icon"><ion-icon name="search-outline"></ion-icon></div>
+        <h2>No se encontraron series con ese título</h2>
+        <p>Prueba con otra búsqueda.</p>
+      </section>
+    } @else {
+      <section class="series-list" aria-label="Historial de series">
+        @for (entry of filteredSeries(); track entry.id) {
+          <article class="series-card">
+            <div class="series-card-main">
+              <p class="series-status">{{ entry.status }}</p>
+              <h2>{{ entry.title }}</h2>
+              @if (entry.creator) { <p class="series-creator">{{ entry.creator }}</p> }
+              @if (entry.genre) { <p class="series-genre">{{ entry.genre }}</p> }
+              <div class="series-meta">
+                @if (entry.rating) {
+                  <span class="rating" aria-label="{{ entry.rating }} de 5 estrellas">
+                    @for (starNumber of [1, 2, 3, 4, 5]; track starNumber) { <ion-icon [name]="starNumber <= entry.rating ? 'star' : 'star-outline'"></ion-icon> }
+                  </span>
+                } @else { <span>Sin calificar</span> }
+                @if (progressLabel(entry); as progress) { <span>{{ progress }}</span> }
+                <span>Registrada {{ formatDate(entry.createdAt) }}</span>
+              </div>
+            </div>
+            <div class="series-actions">
+              <ion-button fill="clear" aria-label="Ver detalles" (click)="openDetails(entry)"><ion-icon slot="icon-only" name="information-circle-outline"></ion-icon></ion-button>
+              <ion-button fill="clear" aria-label="Editar serie" (click)="openEditForm(entry)"><ion-icon slot="icon-only" name="create-outline"></ion-icon></ion-button>
+              <ion-button fill="clear" color="danger" aria-label="Eliminar serie" (click)="confirmDelete(entry)"><ion-icon slot="icon-only" name="trash-outline"></ion-icon></ion-button>
+            </div>
+          </article>
+        }
+      </section>
+    }
+  </main>
 </ion-content>
+
+<ion-modal [isOpen]="isFormOpen()" (didDismiss)="closeForm()" aria-label="Formulario de serie">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-title>{{ editingSeriesId() ? 'Editar serie' : 'Agregar serie' }}</ion-title><ion-buttons slot="end"><ion-button aria-label="Cerrar" (click)="closeForm()"><ion-icon slot="icon-only" name="close"></ion-icon></ion-button></ion-buttons></ion-toolbar></ion-header>
+    <ion-content class="form-content">
+      <form [formGroup]="seriesForm" (ngSubmit)="saveSeries()" class="series-form" novalidate>
+        <div class="form-field">
+          <ion-label for="series-title">Título de la serie</ion-label>
+          <ion-input id="series-title" formControlName="title" placeholder="Escribe el título de la serie" [class.field-invalid]="seriesForm.controls.title.invalid && seriesForm.controls.title.touched" aria-describedby="series-title-error"></ion-input>
+          @if (seriesForm.controls.title.hasError('blank') && seriesForm.controls.title.touched) { <ion-note id="series-title-error" class="error-message">Escribe un título válido</ion-note> }
+        </div>
+
+        <div class="form-row">
+          <div class="form-field"><ion-label for="series-creator">Creador</ion-label><ion-input id="series-creator" formControlName="creator" placeholder="Nombre del creador de la serie"></ion-input></div>
+          <div class="form-field"><ion-label for="series-genre">Género</ion-label><ion-input id="series-genre" formControlName="genre" placeholder="Ej. Drama"></ion-input></div>
+        </div>
+
+        <div class="form-field">
+          <ion-label>Calificación</ion-label>
+          <div class="rating-picker" role="group" aria-label="Calificación de 1 a 5 estrellas">
+            @for (starNumber of [1, 2, 3, 4, 5]; track starNumber) {
+              <ion-button fill="clear" type="button" [attr.aria-label]="starNumber + ' estrellas'" [attr.aria-pressed]="seriesForm.controls.rating.value === starNumber" (click)="setRating(starNumber)"><ion-icon slot="icon-only" [name]="isRatingSelected(starNumber) ? 'star' : 'star-outline'"></ion-icon></ion-button>
+            }
+            @if (seriesForm.controls.rating.value) { <ion-button fill="clear" type="button" (click)="setRating(null)">Quitar</ion-button> } @else { <span>Sin calificar</span> }
+          </div>
+        </div>
+
+        <div class="form-field"><ion-label for="series-status">Estado</ion-label><ion-select id="series-status" formControlName="status" interface="popover"><ion-select-option value="En progreso">En progreso</ion-select-option><ion-select-option value="Terminado">Terminado</ion-select-option><ion-select-option value="Abandonado">Abandonado</ion-select-option></ion-select></div>
+
+        <div class="form-row three-columns">
+          <div class="form-field"><ion-label for="total-seasons">Total de temporadas</ion-label><ion-input id="total-seasons" formControlName="totalSeasons" type="number" inputmode="numeric" min="1" step="1"></ion-input>@if (seriesForm.controls.totalSeasons.hasError('positiveInteger') && seriesForm.controls.totalSeasons.touched) { <ion-note class="error-message">Ingresa un número entero mayor que cero</ion-note> }</div>
+          <div class="form-field"><ion-label for="current-season">Temporada actual</ion-label><ion-input id="current-season" formControlName="currentSeason" type="number" inputmode="numeric" min="1" step="1"></ion-input>@if (seriesForm.controls.currentSeason.hasError('positiveInteger') && seriesForm.controls.currentSeason.touched) { <ion-note class="error-message">Ingresa un número entero mayor que cero</ion-note> }</div>
+          <div class="form-field"><ion-label for="last-episode">Último episodio visto</ion-label><ion-input id="last-episode" formControlName="lastEpisode" type="number" inputmode="numeric" min="1" step="1"></ion-input>@if (seriesForm.controls.lastEpisode.hasError('positiveInteger') && seriesForm.controls.lastEpisode.touched) { <ion-note class="error-message">Ingresa un número entero mayor que cero</ion-note> }</div>
+        </div>
+        @if (seriesForm.hasError('seasonExceedsTotal') && (seriesForm.controls.totalSeasons.touched || seriesForm.controls.currentSeason.touched)) { <ion-note class="error-message form-error">La temporada actual no puede superar el total de temporadas</ion-note> }
+        @if (seriesForm.hasError('episodeWithoutSeason') && seriesForm.controls.lastEpisode.touched) { <ion-note class="error-message form-error">Indica una temporada actual antes de registrar el episodio</ion-note> }
+
+        <div class="form-row">
+          <div class="form-field"><ion-label for="series-start-date">Fecha de inicio</ion-label><ion-input id="series-start-date" formControlName="startDate" type="date"></ion-input></div>
+          <div class="form-field"><ion-label for="series-finish-date">Fecha de finalización</ion-label><ion-input id="series-finish-date" formControlName="finishDate" type="date"></ion-input></div>
+        </div>
+        @if (seriesForm.hasError('invalidDateRange') && (seriesForm.controls.startDate.touched || seriesForm.controls.finishDate.touched)) { <ion-note class="error-message form-error">La fecha de finalización no puede ser anterior a la fecha de inicio</ion-note> }
+
+        <div class="form-field"><ion-label for="series-opinion">Mi opinión</ion-label><ion-textarea id="series-opinion" formControlName="opinion" placeholder="¿Qué te pareció esta serie?" [autoGrow]="true"></ion-textarea></div>
+        <div class="form-field"><ion-label for="series-quote">Frase favorita</ion-label><ion-textarea id="series-quote" formControlName="favoriteQuote" placeholder="Guarda una frase que quieras recordar..." [autoGrow]="true"></ion-textarea></div>
+        <div class="form-actions"><ion-button type="button" fill="outline" (click)="closeForm()">Cancelar</ion-button><ion-button type="submit">Guardar serie</ion-button></div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="isDetailsOpen()" (didDismiss)="closeDetails()" aria-label="Detalles de la serie">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-title>Detalles</ion-title><ion-buttons slot="end"><ion-button aria-label="Cerrar" (click)="closeDetails()"><ion-icon slot="icon-only" name="close"></ion-icon></ion-button></ion-buttons></ion-toolbar></ion-header>
+    <ion-content class="details-content">
+      @if (selectedSeries(); as entry) {
+        <article class="details-card">
+          <p class="series-status">{{ entry.status }}</p><h2>{{ entry.title }}</h2>
+          @if (entry.creator) { <p class="series-creator">{{ entry.creator }}</p> }
+          <dl>
+            @if (entry.genre) { <div><dt>Género</dt><dd>{{ entry.genre }}</dd></div> }
+            <div><dt>Calificación</dt><dd>{{ entry.rating ? entry.rating + ' de 5 estrellas' : 'Sin calificar' }}</dd></div>
+            @if (entry.totalSeasons !== null) { <div><dt>Total de temporadas</dt><dd>{{ entry.totalSeasons }}</dd></div> }
+            @if (entry.currentSeason !== null) { <div><dt>Temporada actual</dt><dd>{{ entry.currentSeason }}</dd></div> }
+            @if (entry.lastEpisode !== null) { <div><dt>Último episodio visto</dt><dd>{{ entry.lastEpisode }}</dd></div> }
+            @if (entry.startDate) { <div><dt>Fecha de inicio</dt><dd>{{ formatDate(entry.startDate) }}</dd></div> }
+            @if (entry.finishDate) { <div><dt>Fecha de finalización</dt><dd>{{ formatDate(entry.finishDate) }}</dd></div> }
+            <div><dt>Fecha de registro</dt><dd>{{ formatDate(entry.createdAt) }}</dd></div>
+          </dl>
+          @if (entry.opinion) { <section><h3>Mi opinión</h3><p class="preserved-text">{{ entry.opinion }}</p></section> }
+          @if (entry.favoriteQuote) { <section><h3>Frase favorita</h3><blockquote class="preserved-text">{{ entry.favoriteQuote }}</blockquote></section> }
+          <ion-button expand="block" fill="outline" (click)="openEditForm(entry)"><ion-icon slot="start" name="create-outline"></ion-icon>Editar serie</ion-button>
+        </article>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>
