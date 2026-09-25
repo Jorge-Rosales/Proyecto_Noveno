@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonButton, IonContent, IonIcon, IonInput, IonItem, IonLabel, IonNote } from '@ionic/angular';
+import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { bookOutline, eyeOffOutline, eyeOutline } from 'ionicons/icons';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -19,7 +21,7 @@ import { bookOutline, eyeOffOutline, eyeOutline } from 'ionicons/icons';
     ReactiveFormsModule,
   ],
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   readonly loginForm = new FormGroup({
     email: new FormControl('', {
       nonNullable: true,
@@ -34,8 +36,28 @@ export class LoginPage {
   passwordVisible = false;
   serverMessage = '';
 
-  constructor() {
+  constructor(private readonly authService: AuthService) {
     addIcons({ bookOutline, eyeOffOutline, eyeOutline });
+  }
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const respuesta = await this.authService.comprobarSesion();
+      console.log('Respuesta de sesion.php:', respuesta);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Error de sesion.php:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error inesperado al comprobar la sesión:', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   togglePasswordVisibility(): void {
