@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AlertController, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar } from '@ionic/angular';
+import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { add, close, createOutline, filmOutline, informationCircleOutline, searchOutline, star, starOutline, trashOutline } from 'ionicons/icons';
 import { MovieDraft, MovieEntry, MovieStatus } from '../models/movie.model';
@@ -31,7 +32,7 @@ const dateRangeValidator: ValidatorFn = (control: AbstractControl): ValidationEr
 export class Tab3Page {
   private readonly movieService = inject(MovieService);
   private readonly alertController = inject(AlertController);
-  readonly movies = this.movieService.movies;
+  readonly movies = signal<MovieEntry[]>(this.movieService.movies());
   readonly searchTerm = signal('');
   readonly sortOption = signal<SortOption>('newest');
   readonly isFormOpen = signal(false);
@@ -68,6 +69,15 @@ export class Tab3Page {
     addIcons({ add, close, createOutline, filmOutline, informationCircleOutline, searchOutline, star, starOutline, trashOutline });
   }
 
+  async ionViewWillEnter(): Promise<void> {
+    try {
+      const movies = await this.movieService.listarPeliculas();
+      this.movies.set(movies);
+    } catch (error: unknown) {
+      this.logAxiosError('No fue posible cargar las películas.', error);
+    }
+  }
+
   setSearchTerm(event: CustomEvent<{ value?: string | null }>): void { this.searchTerm.set(event.detail.value ?? ''); }
   setSortOption(event: CustomEvent<{ value: SortOption }>): void { this.sortOption.set(event.detail.value); }
   openAddForm(): void { this.editingMovieId.set(null); this.resetForm(); this.isFormOpen.set(true); }
@@ -82,7 +92,7 @@ export class Tab3Page {
     this.isFormOpen.set(true);
   }
   closeForm(): void { this.isFormOpen.set(false); this.resetForm(); }
-  saveMovie(): void {
+  async saveMovie(): Promise<void> {
     this.movieForm.markAllAsTouched();
     if (this.movieForm.invalid) return;
     const value = this.movieForm.getRawValue();
@@ -92,9 +102,23 @@ export class Tab3Page {
       opinion: value.opinion.trim(), favoriteQuote: value.favoriteQuote.trim(),
     };
     const editingId = this.editingMovieId();
-    if (editingId) this.movieService.updateMovie(editingId, draft);
-    else this.movieService.addMovie(draft);
-    this.closeForm();
+    try {
+      if (editingId) {
+        const originalMovie = this.movies().find((movie) => movie.id === editingId);
+        if (!originalMovie) {
+          console.error('No fue posible identificar la película que se está editando.');
+          return;
+        }
+        await this.movieService.actualizarPelicula({ ...originalMovie, ...draft });
+      } else {
+        await this.movieService.crearPelicula(draft);
+      }
+      const movies = await this.movieService.listarPeliculas();
+      this.movies.set(movies);
+      this.closeForm();
+    } catch (error: unknown) {
+      this.logAxiosError('No fue posible guardar la película.', error);
+    }
   }
   openDetails(movie: MovieEntry): void { this.selectedMovie.set(movie); this.isDetailsOpen.set(true); }
   closeDetails(): void { this.isDetailsOpen.set(false); this.selectedMovie.set(null); }
@@ -103,10 +127,7 @@ export class Tab3Page {
       header: 'Eliminar película', message: `¿Estás seguro de que deseas eliminar «${movie.title}»?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: 'Eliminar', role: 'destructive', handler: () => {
-          this.movieService.deleteMovie(movie.id);
-          if (this.selectedMovie()?.id === movie.id) this.closeDetails();
-        } },
+        { text: 'Eliminar', role: 'destructive', handler: () => this.deletePersistedMovie(movie) },
       ],
     });
     await alert.present();
@@ -122,5 +143,28 @@ export class Tab3Page {
       title: '', director: '', genre: '', rating: null, status: 'En progreso', startDate: '',
       finishDate: '', opinion: '', favoriteQuote: '',
     });
+  }
+
+  private async deletePersistedMovie(movie: MovieEntry): Promise<void> {
+    try {
+      await this.movieService.eliminarPelicula(movie.id);
+      const movies = await this.movieService.listarPeliculas();
+      this.movies.set(movies);
+      if (this.selectedMovie()?.id === movie.id) this.closeDetails();
+    } catch (error: unknown) {
+      this.logAxiosError('No fue posible eliminar la película.', error);
+    }
+  }
+
+  private logAxiosError(context: string, error: unknown): void {
+    if (axios.isAxiosError(error)) {
+      console.error(context, {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      return;
+    }
+    console.error(context, { message: error instanceof Error ? error.message : 'Error desconocido' });
   }
 }
