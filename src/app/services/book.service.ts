@@ -66,6 +66,23 @@ export class BookService {
     return this.mapPhpBook(response.data.libro);
   }
 
+  async eliminarLibro(id: string): Promise<void> {
+    if (typeof id !== 'string' || !id.trim()) {
+      throw new Error('Se requiere un identificador de libro válido.');
+    }
+
+    const normalizedId = id.trim();
+    const token = await this.authService.obtenerCsrfToken();
+    await api.delete('/libros/eliminar.php', {
+      headers: {
+        'X-CSRF-Token': token,
+      },
+      data: {
+        id: normalizedId,
+      },
+    });
+  }
+
   addBook(book: Omit<Book, 'id' | 'createdAt' | 'updatedAt'>): Book {
     const now = new Date().toISOString();
     const newBook: Book = {

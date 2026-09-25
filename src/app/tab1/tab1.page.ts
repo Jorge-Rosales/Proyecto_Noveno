@@ -168,11 +168,7 @@ export class Tab1Page {
       message: `¿Estás seguro de que deseas eliminar «${book.title}»?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: 'Eliminar', role: 'destructive', handler: () => {
-          this.bookService.deleteBook(book.id);
-          this.books.update((books) => books.filter((entry) => entry.id !== book.id));
-          if (this.selectedBook()?.id === book.id) this.closeDetails();
-        } },
+        { text: 'Eliminar', role: 'destructive', handler: () => this.deletePersistedBook(book) },
       ],
     });
     await alert.present();
@@ -185,5 +181,27 @@ export class Tab1Page {
   }
   private resetForm(): void {
     this.bookForm.reset({ title: '', author: '', genre: '', rating: null, status: 'En progreso', startDate: '', finishDate: '', opinion: '', favoriteQuote: '' });
+  }
+
+  private async deletePersistedBook(book: Book): Promise<void> {
+    try {
+      await this.bookService.eliminarLibro(book.id);
+      const books = await this.bookService.listarLibros();
+      this.books.set(books);
+      if (this.selectedBook()?.id === book.id) this.closeDetails();
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Error al eliminar el libro:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error inesperado al eliminar el libro:', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 }
