@@ -22,7 +22,7 @@ interface ListBooksResponse {
   libros: PhpBook[];
 }
 
-interface CreateBookResponse {
+interface BookResponse {
   libro: PhpBook;
 }
 
@@ -42,18 +42,22 @@ export class BookService {
 
   async crearLibro(book: Omit<Book, 'id' | 'createdAt' | 'updatedAt'>): Promise<Book> {
     const token = await this.authService.obtenerCsrfToken();
+    const response = await api.post<BookResponse>('/libros/crear.php', this.mapBookToPhp(book), {
+      headers: {
+        'X-CSRF-Token': token,
+      },
+    });
+
+    return this.mapPhpBook(response.data.libro);
+  }
+
+  async actualizarLibro(book: Book): Promise<Book> {
+    const token = await this.authService.obtenerCsrfToken();
     const data = {
-      titulo: book.title,
-      autor: book.author || null,
-      genero: book.genre || null,
-      calificacion: book.rating,
-      estado: book.status,
-      fecha_inicio: book.startDate || null,
-      fecha_finalizacion: book.finishDate || null,
-      opinion: book.opinion || null,
-      frase_favorita: book.favoriteQuote || null,
+      id: book.id,
+      ...this.mapBookToPhp(book),
     };
-    const response = await api.post<CreateBookResponse>('/libros/crear.php', data, {
+    const response = await api.put<BookResponse>('/libros/actualizar.php', data, {
       headers: {
         'X-CSRF-Token': token,
       },
@@ -103,6 +107,20 @@ export class BookService {
       favoriteQuote: book.frase_favorita ?? '',
       createdAt: book.fecha_creacion,
       updatedAt: book.fecha_actualizacion,
+    };
+  }
+
+  private mapBookToPhp(book: Omit<Book, 'id' | 'createdAt' | 'updatedAt'>) {
+    return {
+      titulo: book.title,
+      autor: book.author || null,
+      genero: book.genre || null,
+      calificacion: book.rating,
+      estado: book.status,
+      fecha_inicio: book.startDate || null,
+      fecha_finalizacion: book.finishDate || null,
+      opinion: book.opinion || null,
+      frase_favorita: book.favoriteQuote || null,
     };
   }
 

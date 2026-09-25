@@ -107,13 +107,36 @@ export class Tab1Page {
     const bookData = { title: value.title.trim(), author: value.author.trim(), genre: value.genre.trim(), rating: value.rating, status: value.status, startDate: value.startDate, finishDate: value.finishDate, opinion: value.opinion.trim(), favoriteQuote: value.favoriteQuote.trim() };
     const editingId = this.editingBookId();
     if (editingId) {
-      this.bookService.updateBook(editingId, bookData);
-      this.books.update((books) => books.map((book) =>
-        book.id === editingId
-          ? { ...book, ...bookData, updatedAt: new Date().toISOString() }
-          : book,
-      ));
-      this.closeForm();
+      const originalBook = this.books().find((book) => book.id === editingId);
+      if (!originalBook) {
+        console.error('No se encontró el libro que se intentó actualizar.');
+        return;
+      }
+
+      const updatedBook: Book = {
+        ...originalBook,
+        ...bookData,
+      };
+
+      try {
+        await this.bookService.actualizarLibro(updatedBook);
+        const books = await this.bookService.listarLibros();
+        this.books.set(books);
+        this.closeForm();
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          console.error('Error al actualizar el libro:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+          });
+          return;
+        }
+
+        console.error('Error inesperado al actualizar el libro:', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
       return;
     }
 
