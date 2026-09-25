@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AlertController, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar } from '@ionic/angular';
+import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { add, bookOutline, close, createOutline, informationCircleOutline, libraryOutline, searchOutline, star, starOutline, trashOutline } from 'ionicons/icons';
 import { Book, ReadingStatus } from '../models/book.model';
@@ -31,7 +32,7 @@ const ratingValidator: ValidatorFn = (control: AbstractControl): ValidationError
 export class Tab1Page {
   private readonly bookService = inject(BookService);
   private readonly alertController = inject(AlertController);
-  readonly books = this.bookService.books;
+  readonly books = signal<Book[]>(this.bookService.books());
   readonly searchTerm = signal('');
   readonly sortOption = signal<SortOption>('newest');
   readonly isFormOpen = signal(false);
@@ -69,6 +70,26 @@ export class Tab1Page {
     addIcons({ add, bookOutline, close, createOutline, informationCircleOutline, libraryOutline, searchOutline, star, starOutline, trashOutline });
   }
 
+  async ionViewWillEnter(): Promise<void> {
+    try {
+      const books = await this.bookService.listarLibros();
+      this.books.set(books);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Error al consultar los libros:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error inesperado al consultar los libros:', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   setSearchTerm(event: CustomEvent<{ value?: string | null }>): void { this.searchTerm.set(event.detail.value ?? ''); }
   setSortOption(event: CustomEvent<{ value: SortOption }>): void { this.sortOption.set(event.detail.value); }
   openAddForm(): void { this.editingBookId.set(null); this.resetForm(); this.isFormOpen.set(true); }
@@ -84,8 +105,18 @@ export class Tab1Page {
     if (this.bookForm.invalid) return;
     const value = this.bookForm.getRawValue();
     const bookData = { title: value.title.trim(), author: value.author.trim(), genre: value.genre.trim(), rating: value.rating, status: value.status, startDate: value.startDate, finishDate: value.finishDate, opinion: value.opinion.trim(), favoriteQuote: value.favoriteQuote.trim() };
-    if (this.editingBookId()) this.bookService.updateBook(this.editingBookId()!, bookData);
-    else this.bookService.addBook(bookData);
+    const editingId = this.editingBookId();
+    if (editingId) {
+      this.bookService.updateBook(editingId, bookData);
+      this.books.update((books) => books.map((book) =>
+        book.id === editingId
+          ? { ...book, ...bookData, updatedAt: new Date().toISOString() }
+          : book,
+      ));
+    } else {
+      const newBook = this.bookService.addBook(bookData);
+      this.books.update((books) => [newBook, ...books]);
+    }
     this.closeForm();
   }
   openDetails(book: Book): void { this.selectedBook.set(book); this.isDetailsOpen.set(true); }
@@ -96,7 +127,11 @@ export class Tab1Page {
       message: `¿Estás seguro de que deseas eliminar «${book.title}»?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: 'Eliminar', role: 'destructive', handler: () => { this.bookService.deleteBook(book.id); if (this.selectedBook()?.id === book.id) this.closeDetails(); } },
+        { text: 'Eliminar', role: 'destructive', handler: () => {
+          this.bookService.deleteBook(book.id);
+          this.books.update((books) => books.filter((entry) => entry.id !== book.id));
+          if (this.selectedBook()?.id === book.id) this.closeDetails();
+        } },
       ],
     });
     await alert.present();
