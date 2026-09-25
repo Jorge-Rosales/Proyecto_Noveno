@@ -100,7 +100,7 @@ export class Tab1Page {
     this.isFormOpen.set(true);
   }
   closeForm(): void { this.isFormOpen.set(false); this.resetForm(); }
-  saveBook(): void {
+  async saveBook(): Promise<void> {
     this.bookForm.markAllAsTouched();
     if (this.bookForm.invalid) return;
     const value = this.bookForm.getRawValue();
@@ -113,11 +113,29 @@ export class Tab1Page {
           ? { ...book, ...bookData, updatedAt: new Date().toISOString() }
           : book,
       ));
-    } else {
-      const newBook = this.bookService.addBook(bookData);
-      this.books.update((books) => [newBook, ...books]);
+      this.closeForm();
+      return;
     }
-    this.closeForm();
+
+    try {
+      await this.bookService.crearLibro(bookData);
+      const books = await this.bookService.listarLibros();
+      this.books.set(books);
+      this.closeForm();
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error('Error al crear el libro:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error inesperado al crear el libro:', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
   openDetails(book: Book): void { this.selectedBook.set(book); this.isDetailsOpen.set(true); }
   closeDetails(): void { this.isDetailsOpen.set(false); this.selectedBook.set(null); }
