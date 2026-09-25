@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonButton, IonContent, IonIcon, IonInput, IonItem, IonLabel, IonNote } from '@ionic/angular';
@@ -23,6 +23,8 @@ import { AuthService } from '../services/auth.service';
   ],
 })
 export class LoginPage {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   readonly loginForm = new FormGroup({
     email: new FormControl('', {
       nonNullable: true,
@@ -37,10 +39,7 @@ export class LoginPage {
   passwordVisible = false;
   serverMessage = '';
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly router: Router,
-  ) {
+  constructor() {
     addIcons({ bookOutline, eyeOffOutline, eyeOutline });
   }
 
@@ -67,7 +66,6 @@ export class LoginPage {
     try {
       await this.authService.iniciarSesion(email, password);
       this.serverMessage = 'Inicio de sesión correcto.';
-      await this.confirmSession();
       await this.router.navigateByUrl('/tabs/tab1', { replaceUrl: true });
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
@@ -93,25 +91,4 @@ export class LoginPage {
     }
   }
 
-  private async confirmSession(): Promise<void> {
-    try {
-      const respuesta = await this.authService.comprobarSesion();
-      console.log('Sesion confirmada:', respuesta);
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        console.error('Error al confirmar la sesión:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message,
-        });
-        return;
-      }
-
-      console.error('Error al confirmar la sesión:', {
-        status: undefined,
-        data: undefined,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
 }
