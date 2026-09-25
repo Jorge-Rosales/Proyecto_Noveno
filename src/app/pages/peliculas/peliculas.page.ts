@@ -5,8 +5,9 @@ import { AlertController, IonButton, IonButtons, IonContent, IonHeader, IonIcon,
 import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { add, close, createOutline, filmOutline, informationCircleOutline, searchOutline, star, starOutline, trashOutline } from 'ionicons/icons';
-import { MovieDraft, MovieEntry, MovieStatus } from '../models/movie.model';
-import { MovieService } from '../services/movie.service';
+import { CulturalNavigationComponent } from '../../components/cultural-navigation/cultural-navigation.component';
+import { MovieDraft, MovieEntry, MovieStatus } from '../../models/movie.model';
+import { MovieService } from '../../services/movie.service';
 
 type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 
@@ -24,15 +25,15 @@ const dateRangeValidator: ValidatorFn = (control: AbstractControl): ValidationEr
 };
 
 @Component({
-  selector: 'app-tab3',
-  templateUrl: 'tab3.page.html',
-  styleUrls: ['tab3.page.scss'],
-  imports: [CommonModule, ReactiveFormsModule, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar],
+  selector: 'app-peliculas',
+  templateUrl: 'peliculas.page.html',
+  styleUrls: ['peliculas.page.scss'],
+  imports: [CommonModule, CulturalNavigationComponent, ReactiveFormsModule, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar],
 })
-export class Tab3Page {
+export class PeliculasPage {
   private readonly movieService = inject(MovieService);
   private readonly alertController = inject(AlertController);
-  readonly movies = signal<MovieEntry[]>(this.movieService.movies());
+  readonly movies = signal<MovieEntry[]>([]);
   readonly searchTerm = signal('');
   readonly sortOption = signal<SortOption>('newest');
   readonly isFormOpen = signal(false);

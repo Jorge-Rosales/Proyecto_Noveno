@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { SeriesDraft, SeriesEntry } from '../models/series.model';
 import { api } from './api';
 import { AuthService } from './auth.service';
@@ -32,8 +32,6 @@ interface SeriesResponse {
 @Injectable({ providedIn: 'root' })
 export class SeriesService {
   private readonly authService = inject(AuthService);
-  private readonly seriesList = signal<SeriesEntry[]>([]);
-  readonly series = this.seriesList.asReadonly();
 
   async listarSeries(): Promise<SeriesEntry[]> {
     const response = await api.get<ListSeriesResponse>('/series/listar.php');
@@ -67,29 +65,6 @@ export class SeriesService {
       headers: { 'X-CSRF-Token': csrfToken },
       data: { id: id.trim() },
     });
-  }
-
-  addSeries(draft: SeriesDraft): SeriesEntry {
-    const now = new Date().toISOString();
-    const entry: SeriesEntry = { ...draft, id: this.createId(), createdAt: now, updatedAt: now };
-    this.seriesList.update((series) => [entry, ...series]);
-    return entry;
-  }
-
-  updateSeries(id: string, changes: SeriesDraft): void {
-    this.seriesList.update((series) =>
-      series.map((entry) =>
-        entry.id === id ? { ...entry, ...changes, updatedAt: new Date().toISOString() } : entry,
-      ),
-    );
-  }
-
-  deleteSeries(id: string): void {
-    this.seriesList.update((series) => series.filter((entry) => entry.id !== id));
-  }
-
-  private createId(): string {
-    return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
   }
 
   private mapPhpSeries(series: PhpSeries): SeriesEntry {

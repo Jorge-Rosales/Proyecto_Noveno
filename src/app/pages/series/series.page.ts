@@ -5,8 +5,9 @@ import { AlertController, IonButton, IonButtons, IonContent, IonHeader, IonIcon,
 import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { add, close, createOutline, informationCircleOutline, searchOutline, star, starOutline, trashOutline, tvOutline } from 'ionicons/icons';
-import { SeriesDraft, SeriesEntry, SeriesStatus } from '../models/series.model';
-import { SeriesService } from '../services/series.service';
+import { CulturalNavigationComponent } from '../../components/cultural-navigation/cultural-navigation.component';
+import { SeriesDraft, SeriesEntry, SeriesStatus } from '../../models/series.model';
+import { SeriesService } from '../../services/series.service';
 
 type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 
@@ -44,15 +45,15 @@ function toOptionalNumber(value: unknown): number | null {
 }
 
 @Component({
-  selector: 'app-tab2',
-  templateUrl: 'tab2.page.html',
-  styleUrls: ['tab2.page.scss'],
-  imports: [CommonModule, ReactiveFormsModule, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar],
+  selector: 'app-series',
+  templateUrl: 'series.page.html',
+  styleUrls: ['series.page.scss'],
+  imports: [CommonModule, CulturalNavigationComponent, ReactiveFormsModule, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar],
 })
-export class Tab2Page {
+export class SeriesPage {
   private readonly seriesService = inject(SeriesService);
   private readonly alertController = inject(AlertController);
-  readonly series = signal<SeriesEntry[]>(this.seriesService.series());
+  readonly series = signal<SeriesEntry[]>([]);
   readonly searchTerm = signal('');
   readonly sortOption = signal<SortOption>('newest');
   readonly isFormOpen = signal(false);

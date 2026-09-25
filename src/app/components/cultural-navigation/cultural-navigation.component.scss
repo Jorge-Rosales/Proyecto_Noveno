@@ -1,0 +1,54 @@
+:host {
+  display: block;
+}
+
+.cultural-navigation {
+  position: fixed;
+  z-index: 1000;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid #363d3e;
+  background: #151819;
+}
+
+a,
+button {
+  display: flex;
+  min-width: 0;
+  min-height: 3.6rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: .2rem;
+  border: 0;
+  background: transparent;
+  color: #a5aaa7;
+  font: inherit;
+  font-size: .72rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.active {
+  color: #c9a86a;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+ion-icon {
+  font-size: 1.3rem;
+}
+
+@media (max-width: 25rem) {
+  a,
+  button {
+    font-size: .63rem;
+  }
+}

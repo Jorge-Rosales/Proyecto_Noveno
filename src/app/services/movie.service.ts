@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { MovieDraft, MovieEntry } from '../models/movie.model';
 import { api } from './api';
 import { AuthService } from './auth.service';
@@ -29,8 +29,6 @@ interface MovieResponse {
 @Injectable({ providedIn: 'root' })
 export class MovieService {
   private readonly authService = inject(AuthService);
-  private readonly movieList = signal<MovieEntry[]>([]);
-  readonly movies = this.movieList.asReadonly();
 
   async listarPeliculas(): Promise<MovieEntry[]> {
     const response = await api.get<ListMoviesResponse>('/peliculas/listar.php');
@@ -64,29 +62,6 @@ export class MovieService {
       headers: { 'X-CSRF-Token': csrfToken },
       data: { id: id.trim() },
     });
-  }
-
-  addMovie(draft: MovieDraft): MovieEntry {
-    const now = new Date().toISOString();
-    const movie: MovieEntry = { ...draft, id: this.createId(), createdAt: now, updatedAt: now };
-    this.movieList.update((movies) => [movie, ...movies]);
-    return movie;
-  }
-
-  updateMovie(id: string, changes: MovieDraft): void {
-    this.movieList.update((movies) =>
-      movies.map((movie) =>
-        movie.id === id ? { ...movie, ...changes, updatedAt: new Date().toISOString() } : movie,
-      ),
-    );
-  }
-
-  deleteMovie(id: string): void {
-    this.movieList.update((movies) => movies.filter((movie) => movie.id !== id));
-  }
-
-  private createId(): string {
-    return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
   }
 
   private mapPhpMovie(movie: PhpMovie): MovieEntry {

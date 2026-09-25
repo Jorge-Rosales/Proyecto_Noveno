@@ -1,41 +1,42 @@
-git add docs/diagrama-entidades.md docs/uso-de-inteligencia-artificial.md# Uso de inteligencia artificial en Bitácora Cultural
+# Uso de inteligencia artificial en Bitácora Cultural
 
-## 1. Objetivo
+## Objetivo
 
-La inteligencia artificial se utilizó como apoyo para revisar y documentar el modelo de datos y la capa de acceso a datos de Bitácora Cultural. El propósito fue contrastar el código existente con los requisitos de la actividad, detectar inconsistencias, ampliar la verificación automatizada y producir documentación técnica basada en evidencia. La IA no sustituyó la revisión del estudiante ni se utilizó para implementar PHP, MySQL o autenticación.
+La inteligencia artificial se utilizó como apoyo durante el diseño, implementación, revisión y documentación de Bitácora Cultural. Su función fue ayudar a analizar requisitos, proponer código, detectar inconsistencias y preparar comprobaciones reproducibles.
 
-## 2. Herramienta utilizada
+## Herramienta utilizada
 
-La herramienta utilizada fue **Codex**, un asistente de programación. Codex examinó archivos del proyecto, comparó interfaces, servicios, componentes y pruebas, propuso cambios dentro del alcance autorizado y ejecutó verificaciones disponibles en el entorno. Sus resultados se conservaron únicamente cuando coincidían con el código real y con los requisitos de la actividad.
+Se utilizó **Codex** como asistente de programación. Codex inspeccionó el proyecto existente antes de proponer cambios y trabajó sobre la arquitectura Ionic/Angular, Axios, PHP y MySQL/MariaDB elegida para la actividad.
 
-## 3. Modelado de datos
+## Trabajo apoyado por IA
 
-Codex revisó las entidades implementadas `Book`, `SeriesEntry` y `MovieEntry`, junto con sus atributos, tipos y reglas. Se comprobó el uso de identificadores `string`, fechas como cadenas, calificaciones `number | null`, estados restringidos y valores de progreso anulables para Series. También se documentó que los textos funcionalmente opcionales existen como propiedades requeridas y usan una cadena vacía cuando no contienen información.
+La asistencia incluyó:
 
-La revisión relacionó estos tipos con reglas como el título obligatorio, la calificación de 1 a 5, la coherencia de fechas y las restricciones de temporadas y episodios. `Usuario` se mantuvo como una propuesta conceptual pendiente. Sus relaciones de uno a cero o muchos con Libro, Serie y Película describen el diseño futuro; no existen todavía en Angular o MySQL y no se añadió `userId` a las interfaces actuales.
+- diseño inicial de las vistas y modelos culturales;
+- generación y revisión de interfaces TypeScript;
+- organización de servicios Angular;
+- integración de Axios con la API PHP;
+- mapeo entre campos TypeScript y JSON en español;
+- diseño y revisión de endpoints CRUD;
+- autenticación, sesión, CSRF, guard y logout;
+- depuración de compilación y pruebas;
+- revisión de medidas de seguridad;
+- diagramas y documentación técnica.
 
-## 4. Interfaces y servicios Angular
+## Revisión humana
 
-Se analizaron `Book`, `SeriesEntry`, `SeriesDraft`, `MovieEntry`, `MovieDraft` y los tipos de estado. Las interfaces existentes se conservaron porque representan correctamente los formularios y servicios actuales. También se descartó crear una abstracción común o un alias adicional para Libros, ya que no resolvían un problema funcional y habrían ampliado innecesariamente el alcance.
+Las sugerencias no se aceptaron automáticamente. Se compararon con el código real, los requisitos de cada paso y los resultados de compilación, lint y pruebas. El estudiante conserva la responsabilidad de revisar la interfaz, administrar su entorno XAMPP, validar los resultados académicos y decidir qué cambios incorpora mediante control de versiones.
 
-Codex revisó `BookService`, `SeriesService` y `MovieService`. Los tres usan señales privadas para almacenar colecciones en memoria, exponen señales de solo lectura y proporcionan operaciones para crear, actualizar y eliminar por identificador. Se comprobó que generan identificadores y fechas, conservan `createdAt` durante una edición y actualizan `updatedAt`. No fue necesario modificar su lógica ni añadir `getById`, porque las vistas ya obtienen el registro seleccionado desde la colección disponible.
+## Pruebas y evidencia
 
-## 5. Operaciones CRUD y pruebas
+Se realizaron compilaciones y pruebas automatizadas durante el desarrollo. Las pruebas unitarias actuales usan mocks y spies para no ejecutar solicitudes HTTP reales. La persistencia se verificó durante la integración de los CRUD con PHP/MySQL y la arquitectura conserva una copia versionada del backend y del esquema.
 
-La IA trazó el recorrido entre formulario, componente y servicio para las operaciones de crear, consultar, actualizar y eliminar. La consulta incluye la reacción a las señales, búsqueda por título, ordenamiento y presentación de detalles. También se verificó que cancelar una edición no modifica el registro y que la eliminación se realiza por identificador después de la confirmación correspondiente.
+Las comprobaciones visuales o manuales solo deben declararse cuando se ejecuten expresamente. Los resultados concretos de la limpieza final se reportan al terminar este paso y no se anticipan en este documento.
 
-Codex amplió las pruebas automatizadas para cubrir identificadores únicos, fechas válidas, conservación de `createdAt`, cambio de `updatedAt`, edición sin duplicados, cancelación, validaciones, búsqueda, ordenamiento e independencia entre las colecciones. El resultado documentado fue de **27 pruebas Jasmine/Karma aprobadas de 27 ejecutadas**. La compilación mediante el Angular CLI local y el análisis ESLint finalizaron correctamente. `git diff --check` tampoco detectó errores. El comando `npm run build` fue bloqueado por la configuración externa de NVM con el código `NVM4306`; por ello se ejecutó directamente el CLI local sin modificar NVM.
+## Seguridad y limitaciones
 
-## 6. Diagrama de entidades
+La IA ayudó a revisar el uso de `password_hash` y `password_verify`, sesiones PHP, CSRF, consultas preparadas y aislamiento por `usuario_id`. No se incluyeron contraseñas, cookies ni tokens en la documentación. La revisión humana sigue siendo necesaria para configuración de despliegue, credenciales del entorno y pruebas de aceptación.
 
-El diagrama Mermaid se elaboró a partir de las interfaces TypeScript y de `docs/modelo-de-datos.md`. Incluye Libro, Serie y Película con sus atributos reales, además de Usuario marcado expresamente como pendiente de implementación. Las relaciones conceptuales muestran que un usuario podrá registrar cero o muchos elementos de cada tipo cultural. El diagrama no crea tablas, claves foráneas, usuarios ficticios ni nuevas propiedades en el código.
+## Conclusión
 
-## 7. Revisión humana y limitaciones
-
-La evidencia automática confirma la compilación con el CLI local, el análisis estático, las 27 pruebas y la disponibilidad HTTP documentada de las rutas principales. No se realizó una sesión visual interactiva controlada, por lo que todavía corresponde al estudiante ejecutar el procedimiento manual preparado para revisar botones, modales, mensajes, eliminación con confirmación y diseño responsivo.
-
-El almacenamiento continúa siendo temporal: los datos viven en memoria y pueden perderse al recargar. No existe API PHP, base de datos MySQL, persistencia, entidad funcional de Usuario ni autenticación real. También permanece pendiente definir y probar con Postman el futuro contrato HTTP. El estudiante debe revisar que la documentación represente el comportamiento observado y decidir cualquier cambio de arquitectura antes de incorporarlo.
-
-## 8. Conclusión
-
-Codex contribuyó como herramienta de análisis, verificación y redacción técnica. Permitió organizar el modelo existente, justificar la conservación de las interfaces y servicios, ampliar la cobertura de pruebas y representar el diseño conceptual mediante un diagrama. La validación final, las pruebas manuales, la aceptación de las decisiones y el desarrollo posterior del backend continúan bajo responsabilidad del estudiante.
+Codex permitió acelerar tareas de análisis, implementación y documentación manteniendo evidencia verificable. El estudiante mantuvo la responsabilidad sobre la validación, la ejecución de pruebas, el control de versiones y la aceptación final del proyecto.

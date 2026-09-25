@@ -1,18 +1,18 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel } from '@ionic/angular';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { IonIcon } from '@ionic/angular';
 import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { bookOutline, filmOutline, logOutOutline, tvOutline } from 'ionicons/icons';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-tabs',
-  templateUrl: 'tabs.page.html',
-  styleUrls: ['tabs.page.scss'],
-  imports: [IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
+  selector: 'app-cultural-navigation',
+  templateUrl: './cultural-navigation.component.html',
+  styleUrls: ['./cultural-navigation.component.scss'],
+  imports: [IonIcon, RouterLink, RouterLinkActive],
 })
-export class TabsPage {
+export class CulturalNavigationComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   readonly isClosingSession = signal(false);

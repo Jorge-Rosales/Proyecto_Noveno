@@ -1,0 +1,18 @@
+<nav class="cultural-navigation" aria-label="Navegación cultural">
+  <a routerLink="/libros" routerLinkActive="active" aria-label="Libros">
+    <ion-icon aria-hidden="true" name="book-outline"></ion-icon>
+    <span>Libros</span>
+  </a>
+  <a routerLink="/series" routerLinkActive="active" aria-label="Series">
+    <ion-icon aria-hidden="true" name="tv-outline"></ion-icon>
+    <span>Series</span>
+  </a>
+  <a routerLink="/peliculas" routerLinkActive="active" aria-label="Películas">
+    <ion-icon aria-hidden="true" name="film-outline"></ion-icon>
+    <span>Películas</span>
+  </a>
+  <button type="button" [disabled]="isClosingSession()" (click)="closeSession()" aria-label="Cerrar sesión">
+    <ion-icon aria-hidden="true" name="log-out-outline"></ion-icon>
+    <span>{{ isClosingSession() ? 'Cerrando...' : 'Cerrar sesión' }}</span>
+  </button>
+</nav>

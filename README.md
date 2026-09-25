@@ -1,39 +1,84 @@
-# Build Your First Ionic App: Photo Gallery (Ionic Angular and Capacitor)
+# Bitácora Cultural
 
-Get started with Ionic by building a photo gallery app that runs on iOS, Android, and the web - with just one codebase. This is the complete project referenced in the ["Your First App: Angular" guide](https://ionicframework.com/docs/angular/your-first-app). Follow along to create a complete CRUD (create-read-update-delete) experience.
+Aplicación privada para registrar libros, series y películas. Cada usuario administra su propia bitácora mediante una interfaz Ionic, con datos persistentes en MySQL/MariaDB.
 
-Powered by [Ionic Angular](https://ionicframework.com/docs/angular/overview) (web app) and [Capacitor](https://capacitor.ionicframework.com) (native app runtime).
+## Tecnologías
 
-## How It Works
+- Ionic y Angular
+- TypeScript
+- Axios
+- PHP
+- MySQL o MariaDB
+- XAMPP
+- Git y GitHub
 
-After the user navigates to Tab 2 (Photos), they can tap/click on the camera button to open up the device's camera. After taking or selecting a photo, it's stored permanently into the device's filesystem. When the user reopens the app at a later time, the photo images are loaded from the filesystem and displayed again in the gallery. The user can tap on a photo to be presented with the option to remove the photo.
+## Arquitectura
 
-## Feature Overview
-* App framework: [Angular](https://angular.io)
-* UI components: [Ionic Framework](https://ionicframework.com/docs/components)
-  * Camera button: [Floating Action Button (FAB)](https://ionicframework.com/docs/api/fab)
-  * Photo Gallery display: [Grid](https://ionicframework.com/docs/api/grid)
-  * Delete Photo dialog: [Action Sheet](https://ionicframework.com/docs/api/action-sheet) 
-* Native runtime: [Capacitor](https://capacitor.ionicframework.com)
-  * Taking photos: [Camera API](https://capacitor.ionicframework.com/docs/apis/camera)
-  * Writing photo to the filesystem: [Filesystem API](https://capacitor.ionicframework.com/docs/apis/filesystem)
-  * Storing photo gallery metadata: [Preferences API](https://capacitor.ionicframework.com/docs/apis/preferences)
+```text
+Ionic / Angular → Axios → API PHP → MySQL / MariaDB
+```
 
-## Project Structure
-* Tab2 (Photos) (`src/app/tab2/`): Photo Gallery UI and basic logic.
-* PhotoService (`src/app/services/photo.service.ts`): Logic encapsulating Capacitor APIs, including Camera, Filesystem, and Preferences.
+Angular presenta los formularios y las listas. Los servicios usan una instancia compartida de Axios para comunicarse con PHP. La API valida la sesión, CSRF, datos y propiedad de los registros antes de acceder a la base de datos.
 
-## How to Run
+## Funcionalidades
 
-> [!TIP]
-> It's highly recommended to follow along with the [tutorial guide](https://ionicframework.com/docs/angular/your-first-app), which goes into more depth, but this is the fastest way to run the app.
+- Registro e inicio de sesión.
+- Sesión PHP y protección de rutas.
+- Cierre de sesión.
+- CRUD persistente de libros, series y películas.
+- Búsqueda por título y ordenamiento.
+- Calificaciones, estados, fechas y notas personales.
+- Seguimiento de temporadas y episodios para series.
 
-> [!IMPORTANT]
-> Requires Node `^22.22.3 || ^24.15.0 || >=26.0.0` (Angular 22).
+## Estructura
 
-1) Install the Ionic CLI (if you haven't already): `npm install -g @ionic/cli`
-2) Clone the repository: `git clone https://github.com/ionic-team/tutorial-photo-gallery-angular`
-3) Navigate to the project directory: `cd tutorial-photo-gallery-angular`
-4) Install the project dependencies: `npm install`
-5) Run the app in your browser: `ionic serve`
-6) Run the app on iOS or Android: Follow the [Capacitor Workflow](https://capacitorjs.com/docs/basics/workflow) guide for instructions on building and running the app on a native platform.
+| Directorio | Contenido |
+|---|---|
+| `src/` | Aplicación Ionic/Angular, vistas, modelos, guard y servicios. |
+| `backend/` | Copia versionada de la API PHP. |
+| `database/` | Esquema SQL sin datos personales. |
+| `docs/` | Modelo, arquitectura, instalación y documentación académica. |
+
+## Requisitos
+
+- Una versión de Node.js compatible con `package.json`.
+- npm.
+- Ionic CLI 7 o posterior.
+- XAMPP con Apache, PHP y MySQL/MariaDB.
+
+## Instalación
+
+1. Clonar el repositorio y entrar en su directorio.
+2. Ejecutar `npm install`.
+3. Copiar `backend/bitacora-cultural-api` a `C:\xampp\htdocs\bitacora-cultural-api`.
+4. Importar `database/schema.sql` mediante phpMyAdmin o el cliente de MySQL/MariaDB.
+5. Iniciar Apache y MySQL desde XAMPP.
+6. Ejecutar `ionic serve`.
+7. Abrir la URL indicada por Ionic, normalmente `http://localhost:8100`.
+
+La API debe quedar disponible en `http://localhost/bitacora-cultural-api`.
+
+## Base de datos
+
+La base se llama `bitacora_cultural`. El archivo `database/schema.sql` contiene solamente la estructura de `usuarios`, `libros`, `series` y `peliculas`, incluidas sus restricciones y relaciones. No contiene cuentas ni registros culturales.
+
+## Ejecución
+
+```bash
+ionic serve
+```
+
+## Seguridad
+
+- Contraseñas protegidas con `password_hash` y comprobadas con `password_verify`.
+- Sesiones PHP mediante su cookie de sesión.
+- Token CSRF en operaciones que modifican datos.
+- Consultas preparadas.
+- Aislamiento por `usuario_id` en cada operación cultural.
+- Guard de Angular y manejo global de respuestas HTTP 401.
+
+## Persistencia
+
+Los registros se guardan en MySQL/MariaDB. Permanecen disponibles después de recargar la aplicación o cerrar sesión y solo se consultan para el usuario autenticado.
+
+Consulta [docs/instalacion.md](docs/instalacion.md) para el procedimiento detallado.

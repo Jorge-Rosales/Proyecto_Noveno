@@ -66,7 +66,7 @@ export class LoginPage {
     try {
       await this.authService.iniciarSesion(email, password);
       this.serverMessage = 'Inicio de sesión correcto.';
-      await this.router.navigateByUrl('/tabs/tab1', { replaceUrl: true });
+      await this.router.navigateByUrl('/libros', { replaceUrl: true });
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         console.error('Error de login.php:', {

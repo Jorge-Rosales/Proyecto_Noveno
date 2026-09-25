@@ -5,8 +5,9 @@ import { AlertController, IonButton, IonButtons, IonContent, IonHeader, IonIcon,
 import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { add, bookOutline, close, createOutline, informationCircleOutline, libraryOutline, searchOutline, star, starOutline, trashOutline } from 'ionicons/icons';
-import { Book, ReadingStatus } from '../models/book.model';
-import { BookService } from '../services/book.service';
+import { CulturalNavigationComponent } from '../../components/cultural-navigation/cultural-navigation.component';
+import { Book, ReadingStatus } from '../../models/book.model';
+import { BookService } from '../../services/book.service';
 
 type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 
@@ -24,15 +25,15 @@ const ratingValidator: ValidatorFn = (control: AbstractControl): ValidationError
     ? null : { invalidRating: true };
 
 @Component({
-  selector: 'app-tab1',
-  templateUrl: 'tab1.page.html',
-  styleUrls: ['tab1.page.scss'],
-  imports: [CommonModule, ReactiveFormsModule, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar],
+  selector: 'app-libros',
+  templateUrl: 'libros.page.html',
+  styleUrls: ['libros.page.scss'],
+  imports: [CommonModule, CulturalNavigationComponent, ReactiveFormsModule, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar],
 })
-export class Tab1Page {
+export class LibrosPage {
   private readonly bookService = inject(BookService);
   private readonly alertController = inject(AlertController);
-  readonly books = signal<Book[]>(this.bookService.books());
+  readonly books = signal<Book[]>([]);
   readonly searchTerm = signal('');
   readonly sortOption = signal<SortOption>('newest');
   readonly isFormOpen = signal(false);
