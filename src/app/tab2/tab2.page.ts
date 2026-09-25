@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AlertController, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonNote, IonSelect, IonSelectOption, IonTextarea, IonTitle, IonToolbar } from '@ionic/angular';
+import axios from 'axios';
 import { addIcons } from 'ionicons';
 import { add, close, createOutline, informationCircleOutline, searchOutline, star, starOutline, trashOutline, tvOutline } from 'ionicons/icons';
 import { SeriesDraft, SeriesEntry, SeriesStatus } from '../models/series.model';
@@ -51,7 +52,7 @@ function toOptionalNumber(value: unknown): number | null {
 export class Tab2Page {
   private readonly seriesService = inject(SeriesService);
   private readonly alertController = inject(AlertController);
-  readonly series = this.seriesService.series;
+  readonly series = signal<SeriesEntry[]>(this.seriesService.series());
   readonly searchTerm = signal('');
   readonly sortOption = signal<SortOption>('newest');
   readonly isFormOpen = signal(false);
@@ -91,6 +92,15 @@ export class Tab2Page {
     addIcons({ add, close, createOutline, informationCircleOutline, searchOutline, star, starOutline, trashOutline, tvOutline });
   }
 
+  async ionViewWillEnter(): Promise<void> {
+    try {
+      const series = await this.seriesService.listarSeries();
+      this.series.set(series);
+    } catch (error: unknown) {
+      this.logAxiosError('No fue posible cargar las series.', error);
+    }
+  }
+
   setSearchTerm(event: CustomEvent<{ value?: string | null }>): void { this.searchTerm.set(event.detail.value ?? ''); }
   setSortOption(event: CustomEvent<{ value: SortOption }>): void { this.sortOption.set(event.detail.value); }
   openAddForm(): void { this.editingSeriesId.set(null); this.resetForm(); this.isFormOpen.set(true); }
@@ -106,7 +116,7 @@ export class Tab2Page {
     this.isFormOpen.set(true);
   }
   closeForm(): void { this.isFormOpen.set(false); this.resetForm(); }
-  saveSeries(): void {
+  async saveSeries(): Promise<void> {
     this.seriesForm.markAllAsTouched();
     if (this.seriesForm.invalid) return;
     const value = this.seriesForm.getRawValue();
@@ -118,9 +128,23 @@ export class Tab2Page {
       favoriteQuote: value.favoriteQuote.trim(),
     };
     const editingId = this.editingSeriesId();
-    if (editingId) this.seriesService.updateSeries(editingId, draft);
-    else this.seriesService.addSeries(draft);
-    this.closeForm();
+    try {
+      if (editingId) {
+        const originalSeries = this.series().find((entry) => entry.id === editingId);
+        if (!originalSeries) {
+          console.error('No fue posible identificar la serie que se está editando.');
+          return;
+        }
+        await this.seriesService.actualizarSerie({ ...originalSeries, ...draft });
+      } else {
+        await this.seriesService.crearSerie(draft);
+      }
+      const series = await this.seriesService.listarSeries();
+      this.series.set(series);
+      this.closeForm();
+    } catch (error: unknown) {
+      this.logAxiosError('No fue posible guardar la serie.', error);
+    }
   }
   openDetails(entry: SeriesEntry): void { this.selectedSeries.set(entry); this.isDetailsOpen.set(true); }
   closeDetails(): void { this.isDetailsOpen.set(false); this.selectedSeries.set(null); }
@@ -129,10 +153,7 @@ export class Tab2Page {
       header: 'Eliminar serie', message: `¿Estás seguro de que deseas eliminar «${entry.title}»?`,
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: 'Eliminar', role: 'destructive', handler: () => {
-          this.seriesService.deleteSeries(entry.id);
-          if (this.selectedSeries()?.id === entry.id) this.closeDetails();
-        } },
+        { text: 'Eliminar', role: 'destructive', handler: () => this.deletePersistedSeries(entry) },
       ],
     });
     await alert.present();
@@ -155,5 +176,28 @@ export class Tab2Page {
       title: '', creator: '', genre: '', rating: null, status: 'En progreso', totalSeasons: null,
       currentSeason: null, lastEpisode: null, startDate: '', finishDate: '', opinion: '', favoriteQuote: '',
     });
+  }
+
+  private async deletePersistedSeries(entry: SeriesEntry): Promise<void> {
+    try {
+      await this.seriesService.eliminarSerie(entry.id);
+      const series = await this.seriesService.listarSeries();
+      this.series.set(series);
+      if (this.selectedSeries()?.id === entry.id) this.closeDetails();
+    } catch (error: unknown) {
+      this.logAxiosError('No fue posible eliminar la serie.', error);
+    }
+  }
+
+  private logAxiosError(context: string, error: unknown): void {
+    if (axios.isAxiosError(error)) {
+      console.error(context, {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      return;
+    }
+    console.error(context, { message: error instanceof Error ? error.message : 'Error desconocido' });
   }
 }
